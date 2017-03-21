@@ -13,13 +13,13 @@ namespace myRSA
         private readonly string _publicKey; // strings to hold the public/private keys.
         private readonly string _privateKey; // strings to hold the public/private keys.
         private readonly int _maxKeyLength;
-        private readonly int _keySize;
+        
 
         /* These keys can be used as real keys. I can hand out my public key to whoever 
          * and encrypt with my private key, and the other program can decrypt with the public key.
          * save the key to a file and just hand it out... */
 
-        UnicodeEncoding encoder = new UnicodeEncoding();
+        readonly UnicodeEncoding _encoder = new UnicodeEncoding();
 
 
         public Form1()
@@ -28,7 +28,6 @@ namespace myRSA
             InitializeComponent();
             _privateKey = myRSA.ToXmlString(true); // true indicates private key..
             _publicKey = myRSA.ToXmlString(false); // false indicates public key..
-            _keySize = myRSA.KeySize;
             _maxKeyLength = (myRSA.KeySize - 384) / 8 + 37; // determines the maximum length(usually 117)
         }
 
@@ -41,7 +40,7 @@ namespace myRSA
         private void btnEncrypt_Click(object sender, EventArgs e)
         {
 
-            byte[] originalData = encoder.GetBytes(txtPlain.Text);
+            byte[] originalData = _encoder.GetBytes(txtPlain.Text);
             StringBuilder sbEncrypted = new StringBuilder();
             
 
@@ -117,7 +116,7 @@ namespace myRSA
                         counter++;
                 }// for loop end.
 
-                txtPlain.Text = encoder.GetString(decryptedBytes.ToArray());
+                txtPlain.Text = _encoder.GetString(decryptedBytes.ToArray());
             }// using statement end.
         }
 
