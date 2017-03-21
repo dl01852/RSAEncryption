@@ -64,6 +64,7 @@
             this.btnDecrypt.TabIndex = 2;
             this.btnDecrypt.Text = "Decrypt";
             this.btnDecrypt.UseVisualStyleBackColor = true;
+            this.btnDecrypt.Click += new System.EventHandler(this.btnDecrypt_Click);
             // 
             // btnClearCipher
             // 
