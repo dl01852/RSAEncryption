@@ -97,38 +97,45 @@ namespace myRSA
 
         private void btnDecrypt_Click(object sender, EventArgs e)
         {
-         
-            var data = txtCipher.Text.Split(',');
-            StringBuilder sb = new StringBuilder();
-            int maxLength = 128; // Not sure why this HAS TO be 128 for decryption whereas encryption can be any value under the maxKeyLength
-            // Conver to bytes.
-            byte[] byteData = data.Select(d => Convert.ToByte(d)).ToArray();
-
-            using (RSACryptoServiceProvider myRSA = new RSACryptoServiceProvider())
+            if (string.IsNullOrEmpty(txtCipher.Text))
+                MessageBox.Show("Nothing to decrypt!");
+            else
             {
-                myRSA.FromXmlString(_privateKey);
-                    
-                int totalFragments = (int) Math.Ceiling((double) byteData.Length / maxLength); // number of fragments the data needs to broken up into
-                int counter = 0; // counter used to determine which fragment we're on and also the location within the byteData
+                var data = txtCipher.Text.Split(',');
+                StringBuilder sb = new StringBuilder();
+                int maxLength = 128; // Not sure why this HAS TO be 128 for decryption whereas encryption can be any value under the maxKeyLength
+                // Conver to bytes.
+                byte[] byteData = data.Select(d => Convert.ToByte(d)).ToArray();
 
-                List<byte> decryptedBytes = new List<byte>();
-
-                for (int i = 0; i < totalFragments; i++)
+                using (RSACryptoServiceProvider myRSA = new RSACryptoServiceProvider())
                 {
-                    // maxLength * counter = 'The position location of the last byte decrypted'
-                    byte[] dataToDecrypt = byteData.Skip(maxLength * counter).Take(maxLength).ToArray(); // decrypt bytes in chunks of the maxLength.
-                    byte[] decryptedData = myRSA.Decrypt(dataToDecrypt, false);
-                    decryptedBytes.AddRange(decryptedData);
+                    myRSA.FromXmlString(_privateKey);
 
-                    if (byteData.Length - (_maxKeyLength * counter) > _maxKeyLength)
-                        counter++;
-                }// for loop end.
+                    int totalFragments = (int) Math.Ceiling((double) byteData.Length / maxLength); // number of fragments the data needs to broken up into
+                    int counter = 0; // counter used to determine which fragment we're on and also the location within the byteData
 
-                txtPlain.Text = _encoder.GetString(decryptedBytes.ToArray());
-            }// using statement end.
+                    List<byte> decryptedBytes = new List<byte>();
+
+                    for (int i = 0; i < totalFragments; i++)
+                    {
+                        // maxLength * counter = 'The position location of the last byte decrypted'
+                        byte[] dataToDecrypt = byteData.Skip(maxLength * counter).Take(maxLength).ToArray();
+                        // decrypt bytes in chunks of the maxLength.
+                        byte[] decryptedData = myRSA.Decrypt(dataToDecrypt, false);
+                        decryptedBytes.AddRange(decryptedData);
+
+                        // increment the counter only if we can decrypt a full fragment(128 bytes)
+                        if (byteData.Length - (_maxKeyLength * counter) > _maxKeyLength)
+                            counter++;
+                    } // for loop end.
+
+                    txtPlain.Text = _encoder.GetString(decryptedBytes.ToArray());
+                } // using statement end.
+
+            }// else end.
         }
 
-            private void btnClearPlain_Click(object sender, EventArgs e)
+        private void btnClearPlain_Click(object sender, EventArgs e)
         {
             txtPlain.Clear();
         
