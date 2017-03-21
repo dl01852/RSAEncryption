@@ -28,7 +28,7 @@ namespace myRSA
             InitializeComponent();
             _privateKey = myRSA.ToXmlString(true); // true indicates private key..
             _publicKey = myRSA.ToXmlString(false); // false indicates public key..
-            _maxKeyLength = (myRSA.KeySize - 384) / 8 + 37; // determines the maximum length(usually 117)
+            _maxKeyLength = (myRSA.KeySize - 384) / 8 + 37; // any value under this maxLength works.
         }
 
         private void btnClearCipher_Click(object sender, EventArgs e)
@@ -92,7 +92,7 @@ namespace myRSA
          
             var data = txtCipher.Text.Split(',');
             StringBuilder sb = new StringBuilder();
-            int maxLength = 128; // Not sure why this has to be 128 for decryption and encryption can use maxKeyLength which is 117.
+            int maxLength = 128; // Not sure why this HAS TO be 128 for decryption whereas encryption can be any value under the maxKeyLength
             // Conver to bytes.
             byte[] byteData = data.Select(d => Convert.ToByte(d)).ToArray();
 
