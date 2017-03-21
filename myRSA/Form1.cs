@@ -1,10 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Forms;
+
+/* David Lewis
+ * Computer Security 5431
+ * Lab 9(Encryption)
+ * 3/21/2017
+ * The encryption and decryption of a string of any length
+ * using public/private keys with RSA.
+ */
+
 
 namespace myRSA
 {
