@@ -29,7 +29,7 @@ namespace myRSA
             _privateKey = myRSA.ToXmlString(true); // true indicates private key..
             _publicKey = myRSA.ToXmlString(false); // false indicates public key..
             _keySize = myRSA.KeySize;
-            _maxKeyLength = ((myRSA.KeySize - 384) / 8) + 37; // determines the maximum length(usually 117)
+            _maxKeyLength = (myRSA.KeySize - 384) / 8 + 37; // determines the maximum length(usually 117)
         }
 
         private void btnClearCipher_Click(object sender, EventArgs e)
@@ -40,91 +40,92 @@ namespace myRSA
 
         private void btnEncrypt_Click(object sender, EventArgs e)
         {
-            var myRSA = new RSACryptoServiceProvider();
-            List<byte[]> fragmentedEncryptedData; // this will hold a list of fragmented byte arrays of our data.
-            // give the crypto Service provider a key to encrypt.
-            myRSA.FromXmlString(_publicKey);
 
-            
-            byte[] original_data = encoder.GetBytes(txtPlain.Text);
+            byte[] originalData = encoder.GetBytes(txtPlain.Text);
+            StringBuilder sbEncrypted = new StringBuilder();
             
 
             //initialize our list to hold ONLY a limited amount of byte arrays(The amount will change based on how long the message is)
-            fragmentedEncryptedData = new List<byte[]>((int)Math.Ceiling((double)original_data.Length / _maxKeyLength));
+            List<byte[]> fragmentedEncryptedData = new List<byte[]>((int)Math.Ceiling((double)originalData.Length / _maxKeyLength));
 
-          
-            // encrypt the data in increments.
-            int counter = 0; // value will increment as we fill up each byte array with the maximum amount of encrypted bytes.
-            for (int i = 0; i < fragmentedEncryptedData.Capacity; i++)
+
+            using (RSACryptoServiceProvider myRSA = new RSACryptoServiceProvider())
             {
-                // _maxKeyLength * counter = 'The position within the original_data that have been encrypted already.'
+                int counter = 0; // this will be used to determine how many fragmented arrays the data gets broken up into.
+                myRSA.FromXmlString(_publicKey);
 
-                byte[] dataToEncrypt = original_data.Skip(_maxKeyLength * counter).Take(_maxKeyLength).ToArray();
-                var dataEncrypted = myRSA.Encrypt(dataToEncrypt,false).ToArray();
-                fragmentedEncryptedData.Add(dataEncrypted);
-               
-                // increment the counter only if we can max out an entire byteArray(_maxKeyLength)
-                // need this to grab the remaining bytes, that won't fill up an entire byteArray.
-                if (original_data.Length - (_maxKeyLength * counter) > _maxKeyLength)
-                    counter++;
-            }
-
-            //once we have the fragmented Encrypted data. add the ',' and then output it to the textbox.
-            StringBuilder sb = new StringBuilder();
-            int item = 0;
-            int length = fragmentedEncryptedData.Sum(d => d.Length); // length of the fragmented encrypted data summed together. 
-
-            foreach (byte[] dataPieces in fragmentedEncryptedData)
-            {
-                foreach (byte b in dataPieces)
+                // encrypt the data in increments.
+                for (int i = 0; i < fragmentedEncryptedData.Capacity; i++)
                 {
-                    item++;
-                    sb.Append(b);
-                    if (item < length)
-                        sb.Append(",");
+                    // _maxKeyLength * counter = 'The position that i'm at within the originalData.
+                    byte[] dataToEncrypt = originalData.Skip(_maxKeyLength * counter).Take(_maxKeyLength).ToArray();
+                    var encryptedData = myRSA.Encrypt(dataToEncrypt, false);
+                    fragmentedEncryptedData.Add(encryptedData);
+
+                    // Harris Code. append the bytes to a stringBuilder seperated by a ','
+                    int len = encryptedData.Length;
+                    int item1 = 0;
+                    foreach (byte b in encryptedData)
+                    {
+                        item1++;
+                        sbEncrypted.Append(b);
+                        if (item1 < len)
+                            sbEncrypted.Append(',');
+                    }
+
+                    // add an extra ',' at the end of each fragment  or else the last byte
+                    // of each fragment will combine with the first byte of the next fragment.
+                    //. This does add a comma on the very last fragment which is not wanted for decryption when we split.
+                    sbEncrypted.Append(',');
+                    
+                    //increase the counter by 1, only if we can still fill up an entire byteArray.
+                    // this is so we can get the straggling bytes at the end that don't fill up an entire array.
+                    if (originalData.Length - (_maxKeyLength * counter) > _maxKeyLength)
+                        counter++;
                 }
             }
-
-            txtCipher.Text = sb.ToString();
+            // trim that extra ',' at the end of the string that i mentioned earlier and throw the data in the textbox. 
+            txtCipher.Text = sbEncrypted.ToString().TrimEnd(',');
         }
 
         private void btnDecrypt_Click(object sender, EventArgs e)
         {
-            var myRSA = new RSACryptoServiceProvider();
+         
             var data = txtCipher.Text.Split(',');
-            StringBuilder sb = new StringBuilder(); 
-
+            StringBuilder sb = new StringBuilder();
+            int maxLength = 128; // Not sure why this has to be 128 for decryption and encryption can use maxKeyLength which is 117.
             // Conver to bytes.
             byte[] byteData = data.Select(d => Convert.ToByte(d)).ToArray();
 
-            using (var provider = new RSACryptoServiceProvider(_keySize))
+            using (RSACryptoServiceProvider myRSA = new RSACryptoServiceProvider())
             {
-                provider.FromXmlString(_privateKey);
-                var decrypt = provider.Decrypt(byteData, false);
-                txtPlain.Text = encoder.GetString(decrypt);
-            }
-            //    myRSA.FromXmlString(_privateKey);
+                myRSA.FromXmlString(_privateKey);
+                    
+                int totalFragments = (int) Math.Ceiling((double) byteData.Length / maxLength); // number of fragments the data needs to broken up into
+                int counter = 0; // counter used to determine which fragment we're on and also the location within the byteData
 
-            //int total_fragments = (int)Math.Ceiling((double)byteData.Length / _maxKeyLength); // number of fragments the bytes need to be broken into.
-            //int counter = 0;
-            //for (int i = 0; i < total_fragments; i++)
-            //{
-            //    byte[] dataToDecrypt = byteData.Skip(_maxKeyLength * counter).Take(_maxKeyLength).ToArray();
-            //    var decryptedData = myRSA.Decrypt(dataToDecrypt, false);
-            //    sb.Append(encoder.GetString(decryptedData));
+                List<byte> decryptedBytes = new List<byte>();
 
-            //    if (byteData.Length - (_maxKeyLength * counter) > _maxKeyLength)
-            //        counter++;
-            //}
+                for (int i = 0; i < totalFragments; i++)
+                {
+                    // maxLength * counter = 'The position location of the last byte decrypted'
+                    byte[] dataToDecrypt = byteData.Skip(maxLength * counter).Take(maxLength).ToArray(); // decrypt bytes in chunks of the maxLength.
+                    byte[] decryptedData = myRSA.Decrypt(dataToDecrypt, false);
+                    decryptedBytes.AddRange(decryptedData);
 
-            //txtPlain.Text = sb.ToString();
+                    if (byteData.Length - (_maxKeyLength * counter) > _maxKeyLength)
+                        counter++;
+                }// for loop end.
 
+                txtPlain.Text = encoder.GetString(decryptedBytes.ToArray());
+            }// using statement end.
         }
 
-        private void btnClearPlain_Click(object sender, EventArgs e)
+            private void btnClearPlain_Click(object sender, EventArgs e)
         {
             txtPlain.Clear();
         
         }
+
     }
 }
